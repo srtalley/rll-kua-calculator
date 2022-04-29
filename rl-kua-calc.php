@@ -4,7 +4,7 @@ Plugin Name: Red Lotus Kua Calculator
 Plugin URI: http://redlotusletter.com
 Description: The Kua Calculator
 Author: Larry Huang, Dusty Sun
-Version: 2.0
+Version: 2.1
 Author URI: http://redlotusletter.com
 */
 
@@ -16,6 +16,7 @@ class RLL_Kua_Calculator
     /***************************************
      * variables for the kua calculator
      ***************************************/
+    private $report_url;
 	private $rlkc_user_kua;
 	private $rlkc_user_gender;
 	private $rlkc_user_birthdate_text;
@@ -35,12 +36,12 @@ class RLL_Kua_Calculator
 
     public function __construct()
     {
-
         // shortcode
         add_shortcode('rl-kua-calc', array(
             $this,
             'rl_kua_calc_shortcode'
         ));
+        $this->report_url = '/resources/kua-calculator-download/?report=create';
     }
 
     public function set_values()
@@ -73,6 +74,7 @@ class RLL_Kua_Calculator
 
     public function rl_kua_calc_shortcode($attributes = [], $content = null)
     {
+
         // set default values
         $this->set_values();
 
@@ -80,7 +82,7 @@ class RLL_Kua_Calculator
         $attributes = array_change_key_case((array)$attributes, CASE_LOWER);
 
         //override any default attributes with the user defined parameters
-        $custom_attributes = shortcode_atts(['post_id' => get_the_ID() , ], $attributes, $tag);
+        $custom_attributes = shortcode_atts(['post_id' => get_the_ID() , ], $attributes);
 
         $post_id = $custom_attributes['post_id'];
 
@@ -125,10 +127,17 @@ class RLL_Kua_Calculator
         );
 
         // generate form header
-        $rlkc_form = '
+        $url = $_SERVER['REQUEST_URI'];
+        $base_url = site_url() . strtok($url, '?');
+        ob_start();
+        ?>
 	<style type="text/css">
-	<!--
-
+	
+    .kua-calc-form-header p {
+        text-align: center;
+        font-size: 20px;
+        font-weight: 600;
+    }
 	#rl-kua-calc-form form
 	{
 		background-color: #d8d8d8;
@@ -171,6 +180,7 @@ class RLL_Kua_Calculator
 		display: flex;
 		flex-direction: row;
 		flex-wrap: wrap;
+        position: relative;
 	}
 	#rlkc-info-report-text {
 		flex: 1 1 30%;
@@ -200,6 +210,7 @@ class RLL_Kua_Calculator
 	.rlkc-h1 {
 		font-family: Verdana, Geneva, sans-serif;
 		font-size: 24px;
+        line-height: 42px;
 		font-weight: bold;
 		font-variant: normal;
 		color: #000000;
@@ -265,103 +276,71 @@ class RLL_Kua_Calculator
 			padding-left: 0;
 		}
 	}
-	-->
 	</style>
-
+        <div class="kua-calc-form-header"><p>Enter your birthdate & gender below and press Calculate My Personal Kua Number.</p></div>
 
 			<div id="rl-kua-calc-form">
-	' .
-        // make result snap to anchor location
-        '	<form name="input" action="#rlkc-result" method="post">
+        	<form name="input" action="<?php echo $base_url; ?>#rlkc-result" method="post">
 			<div id="rl-kua-calc-bday" style="text-align: left;">
 			<span>Birthday: &nbsp;</span>
-			';
 
-        // generate the birth month options
-        $rlkc_form .= '
 			<select name="rlkc_month" style="width: 9em;">
-			';
-
-        for ($i = 1;$i < 13;$i++)
-        {
-            $rlkc_form .= '<option value="' . sprintf("%02d", $i) . '"' . (($i == $default_month) ? ' selected="1">' : '>') . $monthstring[$i] . '</option>';
-        }
-
-        $rlkc_form .= '
+                <?php
+                for ($i = 1;$i < 13;$i++) {
+                    echo '<option value="' . sprintf("%02d", $i) . '"' . (($i == $default_month) ? ' selected="1">' : '>') . $monthstring[$i] . '</option>';
+                }
+                ?>
 			</select>
-			';
 
-        // generate the birth day options
-        $rlkc_form .= '
 			<select name="rlkc_day" style="width: 5em;">
-			';
-
-        for ($i = 1;$i < 32;$i++)
-        {
-            $rlkc_form .= '<option value="' . sprintf("%02d", $i) . '"' . (($i == $default_day) ? ' selected="1">' : '>') . $i . '</option>';
-        }
-
-        $rlkc_form .= '
+            <?php
+                for ($i = 1;$i < 32;$i++) {
+                    echo '<option value="' . sprintf("%02d", $i) . '"' . (($i == $default_day) ? ' selected="1">' : '>') . $i . '</option>';
+                }
+            ?>
 			</select>
-			';
-
-        // generate the birth year options
-        $rlkc_form .= '
+			
 			<select name="rlkc_year" style="width: 6em;">
-			';
-
-        for ($i = $this->rlkc_start_year;$i < $this->rlkc_end_year + 1;$i++)
-        {
-            $rlkc_form .= '<option value="' . $i . '"' . (($i == $default_year) ? ' selected="1">' : '>') . $i . '</option>';
-        }
-
-        $rlkc_form .= '
+                <?php  
+                for ($i = $this->rlkc_start_year;$i < $this->rlkc_end_year + 1;$i++) {
+                    echo '<option value="' . $i . '"' . (($i == $default_year) ? ' selected="1">' : '>') . $i . '</option>';
+                }
+                ?>
 			</select>
-			';
-
-        $rlkc_form .= '</div>
-			<div id="rl-kua-calc-gender">
+		</div>
+        <div id="rl-kua-calc-gender">
 
 	<div>	
 		<p style="font-weight: 600;">Gender:</p>
 	</div>	
-		';
-
-        // generate the gender option
-        $rlkc_form .= '
+		
 	<div>
 	<p>
-			<input type="radio" name="rlkc_gender" value="1" id="rlkc_gender_male" style="width: auto;" ' . ($default_gender ? 'checked="checked" />' : '/>') . '
-			<label for="rlkc_gender_male">Male</label>
+        <?php 
+        echo '<input type="radio" name="rlkc_gender" value="1" id="rlkc_gender_male" style="width: auto;" ' . ($default_gender ? 'checked="checked" />' : '/>') . '<label for="rlkc_gender_male">Male</label>'; 
+        ?>
 	</p>
 	</div>
 	<div>
 	<p>
-			<input type="radio" name="rlkc_gender" value="0" id="rlkc_gender_female" style="width: auto;" ' . ($default_gender ? '/>' : 'checked="checked" />') . ' 
-			<label for="rlkc_gender_female">Female</label>
+    <?php 
+        echo '<input type="radio" name="rlkc_gender" value="0" id="rlkc_gender_female" style="width: auto;" ' . ($default_gender ? '/>' : 'checked="checked" />') . '<label for="rlkc_gender_female">Female</label>';
+        ?>
 	</p>	
 	</div>
 
-	';
+    </div>
+		
+    <div id="kua-calc-submit" style="text-align: center;">
+    <input type="submit" value="Calculate My Personal Kua Number" />
+    </div>
 
-        $rlkc_form .= '</div>
-			';
+    </form>
 
-        // generate the submit button
-        $rlkc_form .= '
-
-				<div id="kua-calc-submit" style="text-align: center;">
-				<input type="submit" value="Calculate My Personal Kua Number" />
-				</div>
-			';
-
-        // generate the form footer
-        $rlkc_form .= '
-
-			</form>
-
-			</div>
-			';
+    </div>
+    <?php 
+	$rlkc_form = ob_get_contents(); 
+    ob_end_clean();
 
         return $rlkc_form;
     }
@@ -395,26 +374,46 @@ class RLL_Kua_Calculator
         return ($date == $converted_date->format('Y-m-d'));
     }
 
-    public function rlkc_get_params()
+    public function rlkc_get_cookie_params() {
+        if(isset($_COOKIE['kua_calc_info'])) {
+            $str = preg_replace('/\\\"/',"\"", $_COOKIE['kua_calc_info']);
+            $kua_calc_info = json_decode($str, ARRAY_A);
+            return array(
+                'birthdate' => $kua_calc_info['birthdate'],
+                'gender' => $kua_calc_info['gender'],
+                'gender_text' => $kua_calc_info['gender_text'],
+                'rlkc_year' => $kua_calc_info['rlkc_year'],
+                'rlkc_month' => $kua_calc_info['rlkc_month'],
+                'rlkc_day' => $kua_calc_info['rlkc_day'],
+                'show_download_links' => true
+            );
+        } else {
+            // PUT SOMETHING HERE
+            return false;
+        }
+    }
+    public function rlkc_get_post_params()
     {
-        $birthdate = $_POST["rlkc_year"] . "-" . $_POST["rlkc_month"] . "-" . $_POST["rlkc_day"];
-
-        $gender = $_POST["rlkc_gender"];
-
+        $rlkc_year = sanitize_text_field($_POST["rlkc_year"]);
+        $rlkc_month = sanitize_text_field($_POST["rlkc_month"]);
+        $rlkc_day = sanitize_text_field($_POST["rlkc_day"]);
+        $birthdate = $rlkc_year . "-" . $rlkc_month . "-" . $rlkc_day;
+        $gender = sanitize_text_field($_POST["rlkc_gender"]);
+        $gender_text = $gender ? "Male" : "Female";
         return array(
-            $birthdate,
-            $gender
+            'birthdate' => $birthdate,
+            'gender' => $gender,
+            'gender_text' => $gender_text,
+            'rlkc_year' => $rlkc_year,
+            'rlkc_month' => $rlkc_month,
+            'rlkc_day' => $rlkc_day,
+            'show_download_links' => false
         );
     }
 
     public function rlkc_calculate_kua($dt_birthdate, $gender)
     {
 
-        // global
-        // 	$rlkc_start_year,
-        // 	$rlkc_start_year_kua_male,
-        // 	$rlkc_start_year_kua_female,
-        // 	$rlkc_lnyfile;
         $kua = false;
 
         $dt_lnydate = $this->rlkc_find_lny($this->rlkc_lnyfile, $dt_birthdate->format("Y"));
@@ -444,19 +443,6 @@ class RLL_Kua_Calculator
         return $kua;
     }
 
-    public function rlkc_generate_kua_content_style()
-    {
-        $kua_content_style = '
-	<style type="text/css">
-	<!--
-	
-	-->
-	</style>
-	';
-
-        return $kua_content_style;
-    }
-
     public function rlkc_get_kua_content($kua_number, $gender, $birthdate_text)
     {
 
@@ -465,9 +451,6 @@ class RLL_Kua_Calculator
         $kua_file = file_get_contents($this->rlkc_basepath . "kua" . $kua_number . (($kua_number == 5) ? ($gender ? "male" : "female") : "") . ".php");
 
         $kua_footer = file_get_contents($this->rlkc_basepath . "kua-content-footer.php");
-
-        // generate the styling for the kua calculator stuff
-        $kua_content .= $this->rlkc_generate_kua_content_style();
 
         $gender_text = $gender ? "Male" : "Female";
 		$this->rlkc_user_kua = $kua_number;
@@ -486,44 +469,65 @@ class RLL_Kua_Calculator
     public function rlkc_generate_content()
     {
 
-        // global $rlkc_pattern, $rlkc_basepath, $rlkc_lnyfile;
         $kc_content = "";
+        $this->rlkc_params = '';
+        // see if there's a URL parameter to create the report download
+        $url = $_SERVER['REQUEST_URI'];
+        $components = parse_url($url, PHP_URL_QUERY);
+        parse_str($components, $results);
+        if(isset($results['report']) && $results['report'] == 'create') {
 
-        if ((isset($_POST["rlkc_year"])) && (isset($_POST["rlkc_month"])) && (isset($_POST["rlkc_day"])) && (isset($_POST["rlkc_gender"])))
-        {
-            list($birthdate, $gender) = $this->rlkc_get_params();
+            if(isset($_COOKIE['kua_calc_info'])) {
+                $this->rlkc_params = $this->rlkc_get_cookie_params();
+            } else {
+                // remove the report parameter because no cookie is
+                // set and redirect to the kua calc page
+                $base_url = strtok($url, '?');
+                wp_redirect(site_url() . $base_url); 
+            }
 
-            if (!$this->rlkc_date_valid($birthdate))
-            {
+        } else if( (isset($_POST["rlkc_year"]) && isset($_POST["rlkc_month"]) && isset($_POST["rlkc_day"]) && isset($_POST["rlkc_gender"])) ) {
+            $this->rlkc_params = $this->rlkc_get_post_params();
+        }
+        
+        if( is_array($this->rlkc_params) ) {
+
+            if (!$this->rlkc_date_valid($this->rlkc_params['birthdate'])) {
 
                 // date is not valid
                 $kc_content .= "<h3>Sorry, the date you have chosen is invalid.</h3>";
 
                 $kc_content .= $this->rlkc_generate_form(date("Y-m-d"));
-            }
-            else
-            {
+            } else {
+                // we passed, have a valid birthdate, and should process. 
 
-                $dt_birthdate = new \DateTime($birthdate);
+                $dt_birthdate = new \DateTime($this->rlkc_params['birthdate']);
 
-                $kua_number = $this->rlkc_calculate_kua($dt_birthdate, $gender);
+                $kua_number = $this->rlkc_calculate_kua($dt_birthdate, $this->rlkc_params['gender']);
+                $kc_content .= $this->rlkc_generate_form($dt_birthdate->format("Y-m-d") , $this->rlkc_params['gender']);
 
-                $kc_content .= $this->rlkc_generate_form($dt_birthdate->format("Y-m-d") , $gender);
+                // set a cookie with the type
+                $gender_text = $this->rlkc_params['gender'] ? "Male" : "Female";
+                $result_type = array( 
+                    // 'kua_number' => $kua_number,
+                    'birthdate' => $this->rlkc_params['birthdate'],
+                    'gender' => $this->rlkc_params['gender'],
+                    'gender_text' => $gender_text,
+                    'rlkc_year' => $this->rlkc_params['rlkc_year'],
+                    'rlkc_month' => $this->rlkc_params['rlkc_month'],
+                    'rlkc_day' => $this->rlkc_params['rlkc_day']
+                );
+                setcookie( 'kua_calc_info', json_encode($result_type, JSON_UNESCAPED_SLASHES), time() + 3600, '/', $_SERVER['HTTP_HOST'], true, true);
 
                 // add anchor for result
                 $kc_content .= "<div id=\"rlkc-result\"></div>";
 
-                $kc_content .= $this->rlkc_get_kua_content($kua_number, $gender, $dt_birthdate->format("F j, Y"));
+                $kc_content .= $this->rlkc_get_kua_content($kua_number, $this->rlkc_params['gender'], $dt_birthdate->format("F j, Y"));
             }
-        }
-        else
-        {
-
-            /* $kc_add = rlkc_generate_form(date("Y-m-d"));
-            
-            $kc_content = "";
-            $kc_content .= $kc_add; */
+        } else {
+            // generate the form
             $kc_content .= $this->rlkc_generate_form(date("Y-m-d"));
+
         }
 
         return $kc_content;
@@ -562,14 +566,15 @@ class RLL_Kua_Calculator
 
 	public function rlkc_report_header() {
 		ob_start(); ?>
+
 		<div id="rlkc-kua-content">
 
-			<h1 class="rlkc-h1">Your KUA number is: <?php echo $this->rlkc_user_kua;?></h1>
 
 
 			<div id="rlkc-report-header">
 
 			<div class="rlkc-left-col">
+			    <h1 class="rlkc-h1">Your KUA number is: <?php echo $this->rlkc_user_kua;?></h1>
 
 				<p>Birthday: <? echo $this->rlkc_user_birthdate_text; ?><br />Gender: <? echo $this->rlkc_user_gender; ?></p>
 		<?php $contents = ob_get_contents(); 
@@ -591,31 +596,322 @@ class RLL_Kua_Calculator
     
 	public function rlkc_show_report_cover() {
 
-		if($this->rlkc_user_kua == 5) {
-			$file_name = 'Kua-Number-Report--Kua-' . $this->rlkc_user_kua . '-' . $this->rlkc_user_gender . '.pdf';
+        if($this->rlkc_params['show_download_links']) {
+            if($this->rlkc_user_kua == 5) {
+                $file_name = 'Kua-Number-Report--Kua-' . $this->rlkc_user_kua . '-' . $this->rlkc_user_gender . '.pdf';
+    
+            } else {
+                $file_name = 'Kua-Number-Report--Kua-' . $this->rlkc_user_kua . '.pdf';
+            }
+            ob_start(); ?>
+            <style>
+                .loader-clearfix::after, .loader-clearfix::before {
+                    display: table;
+                    content: '';
+                }
+                .loader-clearfix:after {
+                    clear: both;
+                }
+                #inner-report-download {
+                    opacity: 0;
+                    transition: all 0.4s ease-in-out;
+                    width: 100%;
+                }
+                #inner-report-download.show {
+                    opacity: 1;
+                }
+                .report-download-header a {
+                    font-size: 36px;
+                    display: block;
+                    text-align: center;
+                    line-height: 42px;
+                }
+                #rlkc-report-loader{
+                    width: 200px;
+                    height: 200px;
+                    display: block;
+                    position: absolute;
+                    margin:auto;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+                #rlkc-info-report {
+                    padding-left: 0;
+                    max-width: 300px;
+                    margin: 20px auto 15px;
+                }
+                #rlkc-info-report img {
+                   box-shadow: -2px 1px 14px 2px rgb(230 86 140 / 50%);
+                }
+                #rlkc-report-download-button {
+                    text-align: center;
+                }
+                #rlkc-report-download-button .report-download-button a {
+                    display: inline-block;
+                    font-family: "Poppins", sans-serif;
+                    font-weight: 600;
+                    font-size: 18px;
+                    letter-spacing: 1px;
+                    border: none;
+                    background: #e6568c;
+                    color: #fff;
+                    padding: 10px 25px;
+                }
+                #rlkc-report-download-button .report-download-button a:hover {
+                    background-color: #e6cc67;
+                }
+                .patelise_blockG{
+                    background-color:rgb(255,255,255);
+                    border:2px solid rgb(230 86 140);
+                    float:left;
+                    height: 150px;
+                    margin-left:20px;
+                    width:40px;
+                    opacity:0.1;
+                    animation-name:bounceG;
+                        -o-animation-name:bounceG;
+                        -ms-animation-name:bounceG;
+                        -webkit-animation-name:bounceG;
+                        -moz-animation-name:bounceG;
+                    animation-duration:1.5s;
+                        -o-animation-duration:1.5s;
+                        -ms-animation-duration:1.5s;
+                        -webkit-animation-duration:1.5s;
+                        -moz-animation-duration:1.5s;
+                    animation-iteration-count:infinite;
+                        -o-animation-iteration-count:infinite;
+                        -ms-animation-iteration-count:infinite;
+                        -webkit-animation-iteration-count:infinite;
+                        -moz-animation-iteration-count:infinite;
+                    animation-direction:normal;
+                        -o-animation-direction:normal;
+                        -ms-animation-direction:normal;
+                        -webkit-animation-direction:normal;
+                        -moz-animation-direction:normal;
+                    transform:scale(0.7);
+                        -o-transform:scale(0.7);
+                        -ms-transform:scale(0.7);
+                        -webkit-transform:scale(0.7);
+                        -moz-transform:scale(0.7);
+                }
+
+                #blockG_1{
+                    animation-delay:0.45s;
+                        -o-animation-delay:0.45s;
+                        -ms-animation-delay:0.45s;
+                        -webkit-animation-delay:0.45s;
+                        -moz-animation-delay:0.45s;
+                }
+
+                #blockG_2{
+                    animation-delay:0.6s;
+                        -o-animation-delay:0.6s;
+                        -ms-animation-delay:0.6s;
+                        -webkit-animation-delay:0.6s;
+                        -moz-animation-delay:0.6s;
+                }
+
+                #blockG_3{
+                    animation-delay:0.75s;
+                        -o-animation-delay:0.75s;
+                        -ms-animation-delay:0.75s;
+                        -webkit-animation-delay:0.75s;
+                        -moz-animation-delay:0.75s;
+                }
+                div#blockText {text-align: center;margin-top: 40px;margin-left:  -30px;margin-right: -30px;}
+
+                #blockText h3 {color: #e6568c;}
+
+
+                @keyframes bounceG{
+                    0%{
+                        transform:scale(1.2);
+                        opacity:1;
+                    }
+
+                    100%{
+                        transform:scale(0.7);
+                        opacity:0.1;
+                    }
+                }
+
+                @-o-keyframes bounceG{
+                    0%{
+                        -o-transform:scale(1.2);
+                        opacity:1;
+                    }
+
+                    100%{
+                        -o-transform:scale(0.7);
+                        opacity:0.1;
+                    }
+                }
+
+                @-ms-keyframes bounceG{
+                    0%{
+                        -ms-transform:scale(1.2);
+                        opacity:1;
+                    }
+
+                    100%{
+                        -ms-transform:scale(0.7);
+                        opacity:0.1;
+                    }
+                }
+
+                @-webkit-keyframes bounceG{
+                    0%{
+                        -webkit-transform:scale(1.2);
+                        opacity:1;
+                    }
+
+                    100%{
+                        -webkit-transform:scale(0.7);
+                        opacity:0.1;
+                    }
+                }
+
+                @-moz-keyframes bounceG{
+                    0%{
+                        -moz-transform:scale(1.2);
+                        opacity:1;
+                    }
+
+                    100%{
+                        -moz-transform:scale(0.7);
+                        opacity:0.1;
+                    }
+                }
+            </style>
+            <script type="text/javascript">
+            jQuery(function($) {
+                $('document').ready(function() {
+                    setTimeout(function() {
+                        $('#rlkc-report-loader').fadeOut(function() {
+                            $('#inner-report-download').addClass('show');
+                        });
+                    }, 1000);
+                });
+            });
+            </script>
+            </div> <!-- .rlkc-left-col -->
+            <div class="rlkc-right-col">
+
+                <div id="rlkc-report-loader">
+                    <div id="blockG_1" class="patelise_blockG"></div>
+                    <div id="blockG_2" class="patelise_blockG"></div>
+                    <div id="blockG_3" class="patelise_blockG"></div>
+                    <div class="loader-clearfix"></div>
+                    <div id="blockText"><h3>LOADING REPORT</h3></div>
+                </div>
+                <div id="inner-report-download">
+                    <div id="rlkc-info-report-text">
+                        <p class="report-download-header"><a href="<?php echo plugins_url('media/' . $file_name, RLL_KUA_CALCULATOR__FILE__);?>" target="_blank">YOUR REPORT IS READY</a></p>
+                    </div>
+                    <div id="rlkc-info-report">
+                        <a href="<?php echo plugins_url('media/' . $file_name, RLL_KUA_CALCULATOR__FILE__);?>" target="_blank"><img src="<? echo plugins_url('media/Kua-number-report-cover.png',RLL_KUA_CALCULATOR__FILE__);?>" name="Kua Number Report Cover" /></a>
+                    </div>
+                    <div id="rlkc-report-download-button">
+                        <p class="report-download-button"><a href="<?php echo plugins_url('media/' . $file_name, RLL_KUA_CALCULATOR__FILE__);?>" target="_blank">DOWNLOAD MY REPORT</a></p></p>
+                    </div>
+                </div>
+            </div><!-- .rlkc-right-col -->
+                
+            </div> <!-- #rlkc-report-header -->
+            <?php $contents = ob_get_contents(); 
+            ob_end_clean();
+            return $contents;
+        } else {
+            ob_start(); ?>
+
+            </div> <!-- .rlkc-left-col -->
+            <div class="rlkc-right-col">
+                <div id="rlkc-info-report-text">
+                    <p class="report-download-header"><a href="<?php echo $this->report_url; ?>" target="_blank">Free Download</a></p>
+                    <p class="report-download-text">Get This FREE 6 Page Report with Details about Your Unique Kua Number.</p>
+                </div>
+                <div id="rlkc-info-report">
+                <a href="<?php echo $this->report_url; ?>" target="_blank"><img src="<? echo plugins_url('media/Kua-number-report-cover.png',RLL_KUA_CALCULATOR__FILE__);?>" name="Kua Number Report Cover" /></a>
+                </div>
+            </div><!-- .rlkc-right-col -->
+                
+            </div> <!-- #rlkc-report-header -->
+            <?php $contents = ob_get_contents(); 
+            ob_end_clean();
+            return $contents;
+        }
+		
+		
+		
+	}
+
+    public function show_report_download() {
+        // SHOW PREV BIRTHDATE
+        if(isset($_COOKIE['kua_calc_info'])) {
+            $str = preg_replace('/\\\"/',"\"", $_COOKIE['kua_calc_info']);
+            $kua_calc_info = json_decode($str, ARRAY_A);
+
+            $kua_number = $kua_calc_info['kua_number'];
+            $gender = $kua_calc_info['gender'];
+            $rlkc_year = $kua_calc_info['rlkc_year'];
+            $rlkc_month = $kua_calc_info['rlkc_month'];
+            $dateObj   = \DateTime::createFromFormat('!m', $rlkc_month);
+            $rlkc_month = $dateObj->format('F'); // March
+            $rlkc_day = $kua_calc_info['rlkc_day'];
+        } else {
+            // PUT SOMETHING HERE
+            return false;
+        }
+		if($kua_number == 5) {
+			$file_name = 'Kua-Number-Report--Kua-' . $kua_number . '-' . $gender . '.pdf';
 
 		} else {
-			$file_name = 'Kua-Number-Report--Kua-' . $this->rlkc_user_kua . '.pdf';
+			$file_name = 'Kua-Number-Report--Kua-' . $kua_number . '.pdf';
 		}
 		
 		ob_start(); ?>
-
-		</div> <!-- .rlkc-left-col -->
-		<div class="rlkc-right-col">
-				<div id="rlkc-info-report-text">
-					<p class="report-download-header"><a href="<?php echo plugins_url('media/' . $file_name, RLL_KUA_CALCULATOR__FILE__);?>" target="_blank">Free Download</a></p>
-					<p class="report-download-text">Get This FREE 6 Page Report with Details about Your Unique Kua Number.</p>
-				</div>
-				<div id="rlkc-info-report">
-				<a href="<?php echo plugins_url('media/' . $file_name, RLL_KUA_CALCULATOR__FILE__);?>" target="_blank"><img src="<? echo plugins_url('media/Kua-number-report-cover.png',RLL_KUA_CALCULATOR__FILE__);?>" name="Kua Number Report Cover" /></a>
-				</div>
-			</div><!-- .rlkc-right-col -->
-			
-		</div> <!-- #rlkc-report-header -->
+        <style type="text/css">
+            #rlkc-report-header {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                margin-bottom: 10px;
+            }
+            .rlkc-left-col {
+                flex: 1 1 50%;
+            }
+            .rlkc-right-col {
+                flex: 1 1 50%;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                position: relative;
+            }
+        </style>
+        <div id="rlkc-report-header">
+            <div class="rlkc-left-col">
+                <div class="rlkc-info">
+                    <p><strong>Birthdate: </strong> <?php echo $rlkc_month . ' ' . $rlkc_day . ', ' . $rlkc_year; ?></p>
+                    <p><strong>Gender: </strong> <?php echo $gender; ?>
+                </div>
+                <div id="rlkc-info-report-text">
+                    <p class="report-download-header"><a href="<?php echo plugins_url('media/' . $file_name, RLL_KUA_CALCULATOR__FILE__);?>" target="_blank">Free Download</a></p>
+                    <p class="report-download-text">Get This FREE 6 Page Report with Details about Your Unique Kua Number.</p>
+                </div>
+            </div>
+            <div class="rlkc-right-col">
+                
+                <div id="rlkc-info-report">
+                    <a href="<?php echo plugins_url('media/' . $file_name, RLL_KUA_CALCULATOR__FILE__);?>" target="_blank"><img src="<? echo plugins_url('media/Kua-number-report-cover.png',RLL_KUA_CALCULATOR__FILE__);?>" name="Kua Number Report Cover" /></a>
+                </div>
+            </div><!-- .rlkc-right-col -->
+        </div>
 		<?php $contents = ob_get_contents(); 
 		ob_end_clean();
 		return $contents;
-	}
+     
+    }
 } // end class RLL_Kua_Calculator
 $rll_kua_calculator = new RLL_Kua_Calculator();
 
