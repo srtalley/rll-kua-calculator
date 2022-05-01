@@ -4,14 +4,23 @@ Plugin Name: Red Lotus Kua Calculator
 Plugin URI: http://redlotusletter.com
 Description: The Kua Calculator
 Author: Larry Huang, Dusty Sun
-Version: 2.1
+Version: 2.1.1
 Author URI: http://redlotusletter.com
 */
 
 namespace RedLotusLetter;
+use \DustySun\WP_Settings_API\v2 as DSWPSettingsAPI;
+//Include the admin panel page
+require_once( dirname( __FILE__ ) . '/lib/dustysun-wp-settings-api/ds_wp_settings_api.php');
+//Include the admin panel page
+require_once( dirname( __FILE__ ) . '/rl-kua-calc-admin.php');
 define( 'RLL_KUA_CALCULATOR__FILE__', __FILE__ );
 class RLL_Kua_Calculator
 {
+    private $rll_kua_calc_json_file;
+    private $rll_kua_calc_settings_obj;
+    public $current_settings;
+    public $rll_kua_calc_main_settings;
 
     /***************************************
      * variables for the kua calculator
@@ -41,9 +50,30 @@ class RLL_Kua_Calculator
             $this,
             'rl_kua_calc_shortcode'
         ));
-        $this->report_url = '/resources/kua-calculator-download/?report=create';
+        // get the settings
+        $this->rll_kua_calc_create_settings();
     }
+    public function rll_kua_calc_create_settings() {
 
+        // set the settings api options
+        $ds_api_settings = array(
+          'json_file' => plugin_dir_path( __FILE__ ) . '/rl-kua-calc.json'
+        );
+        $this->rll_kua_calc_settings_obj = new DSWPSettingsAPI\SettingsBuilder($ds_api_settings);
+
+        // get the settings
+        $this->current_settings = $this->rll_kua_calc_settings_obj->get_current_settings();
+
+        // Get the plugin options
+        $this->rll_kua_calc_main_settings = $this->rll_kua_calc_settings_obj->get_main_settings();
+        
+        // SET THE URL
+        // $this->report_url = '/resources/kua-calculator-download/?report=create';
+        $this->report_url = $this->current_settings['rll_kua_calculator_general_settings_options']['report_download_url'];
+
+        $this->wl( $this->report_url);
+
+    } // end function rll_kua_calc_create_settings
     public function set_values()
     {
 		$this->testman = 'banr';

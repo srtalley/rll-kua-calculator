@@ -1,0 +1,28 @@
+{
+    "main_settings": {
+        "name": "Red Lotus Letter Kua Calculator Settings",
+        "text_domain": "redlotus",
+        "tabs": "true",
+        "options_suffix": "_options",
+        "page_suffix": "_page",
+        "author": "Red Lotus Letter",
+        "author_uri": "https://redlotusletter.com",
+        "item_uri": "https://redlotusletter.com",
+        "support_uri": "https://redlotusletter.com/contact/",
+        "support_email": "support@dustysun.com",
+        "page_slug": "rll-kua-calculator",
+        "page_hook": "toplevel_page_rll-kua-calculator",
+        "version": "2.1.1"
+    },
+    "options": {
+        "rll_kua_calculator_general_settings": {
+            "title": "Main Settings",
+            "tab_label": "General",
+            "fields": [{
+                "id": "report_download_url",
+                "label": "Report Download URL",
+                "type": "text"
+            }]
+        }
+    }
+}
