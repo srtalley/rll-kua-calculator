@@ -821,7 +821,7 @@ class RLL_Kua_Calculator
                         $('#rlkc-report-loader').fadeOut(function() {
                             $('#inner-report-download').addClass('show');
                         });
-                    }, 1000);
+                    }, 3000);
                 });
             });
             </script>
